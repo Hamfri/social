@@ -3,18 +3,28 @@ package main
 import (
 	"log"
 	"net/http"
+	"social/internal/repository"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+type dbConfig struct {
+	dsn          string
+	maxOpenConns int
+	maxIdleConns int
+	maxIdleTime  string
+}
 type config struct {
-	addr string
+	port string
+	env  string
+	db   dbConfig
 }
 
 type application struct {
-	config config
+	config     config
+	repository repository.Repository
 }
 
 func (app *application) mount() http.Handler {
@@ -37,14 +47,14 @@ func (app *application) mount() http.Handler {
 // mux *chi.Mux == mux http.Handler
 func (app *application) run(mux http.Handler) error {
 	srv := &http.Server{
-		Addr:         app.config.addr,
+		Addr:         app.config.port,
 		Handler:      mux,
 		WriteTimeout: time.Second * 30,
 		ReadTimeout:  time.Second * 10,
 		IdleTimeout:  time.Minute,
 	}
 
-	log.Printf("starting server on port %s", app.config.addr)
+	log.Printf("server started on port %s", app.config.port)
 
 	return srv.ListenAndServe()
 }
