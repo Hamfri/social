@@ -20,7 +20,7 @@ type User struct {
 }
 
 type UserRepository struct {
-	db *sql.DB
+	DB *sql.DB
 }
 
 func (r *UserRepository) Create(ctx context.Context, user *User) error {
@@ -31,5 +31,5 @@ func (r *UserRepository) Create(ctx context.Context, user *User) error {
 		RETURNING id, created_at, updated_at
 	`
 	args := []any{user.Username, user.Email, user.Password}
-	return r.db.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+	return r.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
 }

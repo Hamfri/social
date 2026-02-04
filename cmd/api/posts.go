@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"social/internal/repository"
-	"strconv"
-
-	"github.com/go-chi/chi/v5"
 )
+
+type postCtx string
+
+const postCtxKey = postCtx("posts")
 
 type CreatePostPayload struct {
 	Title   string   `json:"title" validate:"required,max=100"`
@@ -43,24 +45,86 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := writeJSON(w, http.StatusCreated, post); err != nil {
+	if err := app.jsonResponse(w, http.StatusCreated, post); err != nil {
 		app.internalServerErrorResponse(w, r, err)
 		return
 	}
 }
 
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
-	postId := chi.URLParam(r, "id")
+	posts := getPostFromCtx(r)
 
-	id, err := strconv.ParseInt(postId, 10, 64)
+	ctx := r.Context()
+	comments, err := app.repository.Comments.GetCommentsByPostID(ctx, posts.ID)
+	if err != nil {
+		app.internalServerErrorResponse(w, r, err)
+		return
+	}
+
+	posts.Comments = comments
+
+	if err := app.jsonResponse(w, http.StatusOK, posts); err != nil {
+		app.internalServerErrorResponse(w, r, err)
+		return
+	}
+}
+
+func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
+	post := getPostFromCtx(r)
+
+	var payload struct {
+		Title   *string   `json:"title" validate:"omitempty,max=100"`
+		Content *string   `json:"content" validate:"omitempty,max=1000"`
+		Tags    *[]string `json:"tags"`
+	}
+
+	err := readJSON(w, r, &payload)
 	if err != nil {
 		app.badRequestErrorResponse(w, r, err)
 		return
 	}
 
-	ctx := r.Context()
+	if payload.Title != nil {
+		post.Title = *payload.Title
+	}
 
-	posts, err := app.repository.Posts.GetByID(ctx, id)
+	if payload.Content != nil {
+		post.Content = *payload.Title
+	}
+
+	if payload.Tags != nil {
+		post.Tags = *payload.Tags
+	}
+
+	if err = Validate.Struct(payload); err != nil {
+		app.badRequestErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.repository.Posts.UpdatePost(r.Context(), post)
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrEditConflict):
+			app.internalServerErrorResponse(w, r, err)
+		default:
+			app.internalServerErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	if err = app.jsonResponse(w, http.StatusOK, post); err != nil {
+		app.internalServerErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
+	postId, err := app.readIntParam(r, "id")
+	if err != nil {
+		app.badRequestErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.repository.Posts.DeletePost(r.Context(), postId)
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrRecordNotFound):
@@ -71,8 +135,38 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := writeJSON(w, http.StatusOK, posts); err != nil {
-		app.internalServerErrorResponse(w, r, err)
-		return
-	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (app *application) postsContextMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		postId, err := app.readIntParam(r, "id")
+		if err != nil {
+			app.badRequestErrorResponse(w, r, err)
+			return
+		}
+
+		ctx := r.Context()
+
+		post, err := app.repository.Posts.GetByID(ctx, postId)
+		if err != nil {
+			switch {
+			case errors.Is(err, repository.ErrRecordNotFound):
+				app.notFoundErrorResponse(w, r, err)
+			default:
+				app.internalServerErrorResponse(w, r, err)
+			}
+			return
+		}
+
+		// never mutate context
+		// always create a new one
+		ctx = context.WithValue(ctx, postCtxKey, post)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func getPostFromCtx(r *http.Request) *repository.Post {
+	post, _ := r.Context().Value(postCtxKey).(*repository.Post)
+	return post
 }

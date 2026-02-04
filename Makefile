@@ -27,3 +27,7 @@ migrate/down:
 	@echo 'Running migrations'
 	@migrate -path $(MIGRATIONS_PATH) -database $(DB_DSN) down
 
+.PHONY: migrate/force-version
+migrate/force-version: confirm
+	@echo 'Reverting schema_migrations to the last known stable version'
+	@migrate -path $(MIGRATIONS_PATH) -database $(DB_DSN) force ${version}
