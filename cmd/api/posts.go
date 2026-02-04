@@ -89,7 +89,7 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if payload.Content != nil {
-		post.Content = *payload.Title
+		post.Content = *payload.Content
 	}
 
 	if payload.Tags != nil {
@@ -105,7 +105,7 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrEditConflict):
-			app.internalServerErrorResponse(w, r, err)
+			app.editConflictResponse(w, r, err)
 		default:
 			app.internalServerErrorResponse(w, r, err)
 		}

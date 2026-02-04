@@ -3,10 +3,11 @@ CREATE TABLE IF NOT EXISTS posts (
     title TEXT NOT NULL,
     content TEXT NOT NULL,
     tags  TEXT[],
+    version INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ(0) NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ(0) NOT NULL DEFAULT NOW(),
     user_id BIGINT NOT NULL,
-    
+
     CONSTRAINT fk_posts_user
         FOREIGN KEY(user_id)
         REFERENCES users(id)

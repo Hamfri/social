@@ -24,3 +24,10 @@ func (app *application) notFoundErrorResponse(w http.ResponseWriter, r *http.Req
 	message := "resource not found"
 	writeJSONError(w, http.StatusNotFound, message)
 }
+
+func (app *application) editConflictResponse(w http.ResponseWriter, r *http.Request, err error) {
+	log.Printf("edit conflict error: %s method: %s path: %s", err.Error(), r.Method, r.URL.Path)
+
+	message := "edit conflict"
+	writeJSONError(w, http.StatusConflict, message)
+}
