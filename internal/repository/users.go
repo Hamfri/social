@@ -31,5 +31,9 @@ func (r *UserRepository) Create(ctx context.Context, user *User) error {
 		RETURNING id, created_at, updated_at
 	`
 	args := []any{user.Username, user.Email, user.Password}
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
 	return r.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
 }

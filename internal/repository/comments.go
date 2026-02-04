@@ -17,7 +17,7 @@ type Comment struct {
 }
 
 type Comments interface {
-	Create(context.Context, Comment) error
+	Create(context.Context, *Comment) error
 	GetCommentsByPostID(context.Context, int64) ([]*Comment, error)
 }
 
@@ -25,8 +25,24 @@ type CommentRepository struct {
 	DB *sql.DB
 }
 
-func (r CommentRepository) Create(ctx context.Context, comment Comment) error {
-	return nil
+func (r CommentRepository) Create(ctx context.Context, comment *Comment) error {
+	query := `
+		INSERT INTO comments
+		(comment, user_id, post_id)
+		VALUES($1, $2, $3)
+		RETURNING id, created_at, updated_at
+	`
+
+	args := []any{comment.Comment, comment.UserId, comment.PostId}
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	return r.DB.QueryRowContext(ctx, query, args...).Scan(
+		&comment.ID,
+		&comment.CreatedAt,
+		&comment.UpdatedAt,
+	)
 }
 
 func (r CommentRepository) GetCommentsByPostID(ctx context.Context, postId int64) ([]*Comment, error) {
@@ -37,6 +53,9 @@ func (r CommentRepository) GetCommentsByPostID(ctx context.Context, postId int64
 		WHERE c.post_id = $1
 		ORDER BY c.created_at DESC
 	`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
 
 	rows, err := r.DB.QueryContext(ctx, query, postId)
 	if err != nil {

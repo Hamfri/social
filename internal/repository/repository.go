@@ -3,11 +3,13 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"time"
 )
 
 var (
-	ErrRecordNotFound = errors.New("record not found")
-	ErrEditConflict   = errors.New("edit conflict")
+	ErrRecordNotFound    = errors.New("record not found")
+	ErrEditConflict      = errors.New("edit conflict")
+	QueryTimeoutDuration = 5 * time.Second
 )
 
 type Repository struct {

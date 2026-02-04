@@ -1,5 +1,8 @@
 # make does not support quotes, export ENV_ATTR=123 spaces around `=` in  .env
-include .env
+ifneq (,$(wildcard .env))
+	include .env
+	export
+endif
 
 MIGRATIONS_PATH=./migrations
 
@@ -31,3 +34,7 @@ migrate/down:
 migrate/force-version: confirm
 	@echo 'Reverting schema_migrations to the last known stable version'
 	@migrate -path $(MIGRATIONS_PATH) -database $(DB_DSN) force ${version}
+
+.PHONY: seed/database
+seed/database:
+	@go run ./cmd/seed

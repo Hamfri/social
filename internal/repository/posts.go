@@ -39,8 +39,21 @@ func (r *PostRepository) Create(ctx context.Context, post *Post) error {
 		values($1, $2, $3, $4)
 		RETURNING id, created_at, updated_at
 	`
-	args := []any{post.Content, post.Title, post.UserID, pq.Array(post.Tags)}
-	return r.DB.QueryRowContext(ctx, query, args...).Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt)
+	args := []any{
+		post.Content,
+		post.Title,
+		post.UserID,
+		pq.Array(post.Tags),
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	return r.DB.QueryRowContext(ctx, query, args...).Scan(
+		&post.ID,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+	)
 }
 
 func (r *PostRepository) GetByID(ctx context.Context, id int64) (*Post, error) {
@@ -53,6 +66,10 @@ func (r *PostRepository) GetByID(ctx context.Context, id int64) (*Post, error) {
 	args := []any{id}
 
 	var post Post
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
 	err := r.DB.QueryRowContext(ctx, query, args...).Scan(
 		&post.ID,
 		&post.Title,
@@ -89,6 +106,9 @@ func (r *PostRepository) UpdatePost(ctx context.Context, post *Post) error {
 		post.Version,
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
 	err := r.DB.QueryRowContext(ctx, query, args...).Scan(
 		&post.UpdatedAt,
 		&post.Version,
@@ -110,6 +130,9 @@ func (r *PostRepository) DeletePost(ctx context.Context, postId int64) error {
 		DELETE FROM posts 
 		WHERE id = $1
 	`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
 
 	result, err := r.DB.ExecContext(ctx, query, postId)
 	if err != nil {
