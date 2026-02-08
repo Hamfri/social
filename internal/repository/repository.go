@@ -9,19 +9,21 @@ import (
 var (
 	ErrRecordNotFound    = errors.New("record not found")
 	ErrEditConflict      = errors.New("edit conflict")
-	QueryTimeoutDuration = 5 * time.Second
+	QueryTimeoutDuration = 5 * time.Minute
 )
 
 type Repository struct {
 	Posts
 	Users
 	Comments
+	UserFollows
 }
 
 func New(db *sql.DB) Repository {
 	return Repository{
-		Posts:    &PostRepository{db},
-		Users:    &UserRepository{db},
-		Comments: &CommentRepository{db},
+		Posts:       &PostRepository{db},
+		Users:       &UserRepository{db},
+		Comments:    &CommentRepository{db},
+		UserFollows: &UserFollowRepository{db},
 	}
 }

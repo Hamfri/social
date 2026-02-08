@@ -14,6 +14,7 @@ type Posts interface {
 	GetByID(context.Context, int64) (*Post, error)
 	DeletePost(context.Context, int64) error
 	UpdatePost(context.Context, *Post) error
+	GetUserFeed(context.Context, int64) ([]*PostWithMetadata, error)
 }
 
 type Post struct {
@@ -25,7 +26,13 @@ type Post struct {
 	UpdatedAt time.Time  `json:"-"`
 	Version   int        `json:"version"`
 	UserID    int64      `json:"user_id"`
-	Comments  []*Comment `json:"comments"`
+	Comments  []*Comment `json:"comments"` // should move to a dto or a domain
+	User      User       `json:"user"`     // should move to a dto or a domain
+}
+
+type PostWithMetadata struct {
+	Post
+	CommentsCount int `json:"comments_count"`
 }
 
 type PostRepository struct {
@@ -149,4 +156,79 @@ func (r *PostRepository) DeletePost(ctx context.Context, postId int64) error {
 	}
 
 	return nil
+}
+
+// followedId equals the the authenticated user
+func (r PostRepository) GetUserFeed(ctx context.Context, followedID int64) ([]*PostWithMetadata, error) {
+	query := `
+		WITH related_users AS (
+		    -- users followed by the authenticated user
+			SELECT followed_id AS user_id
+			FROM user_follows
+			WHERE follower_id = $1
+
+			UNION
+
+			-- users following authenticated user
+			SELECT follower_id AS user_id
+			FROM user_follows
+			WHERE followed_id = $1
+
+			UNION
+
+			-- we need to include the authenticated user_id
+			-- as well so that we can return his/her posts too
+			SELECT $1 AS user_id
+		) 
+		SELECT p.id as post_id, p.title, p.content, p.tags, u.id, u.username, c.comments_count
+		FROM related_users ru
+		JOIN users u ON u.id = ru.user_id
+		JOIN posts p ON p.user_id = u.id
+
+		-- Optimized incase comments table get's large
+		LEFT JOIN (
+			SELECT post_id, COUNT(*) AS comments_count
+			FROM comments
+			GROUP BY post_id
+		) c ON c.post_id = p.id
+
+		GROUP BY p.id, u.id, u.username, c.comments_count
+		ORDER BY p.id
+	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	rows, err := r.DB.QueryContext(ctx, query, followedID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var postsWithMetadata []*PostWithMetadata
+	for rows.Next() {
+		var p PostWithMetadata
+
+		err := rows.Scan(
+			&p.ID,
+			&p.Title,
+			&p.Content,
+			pq.Array(&p.Tags),
+			&p.User.ID,
+			&p.User.Username,
+			&p.CommentsCount,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		postsWithMetadata = append(postsWithMetadata, &p)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return postsWithMetadata, nil
 }

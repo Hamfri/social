@@ -1,4 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS citext;
+CREATE EXTENSION IF NOT EXISTS citext; -- dataType to support case insensitive columns like emails
 
 CREATE TABLE IF NOT EXISTS users(
     id BIGSERIAL PRIMARY KEY,
@@ -8,3 +8,5 @@ CREATE TABLE IF NOT EXISTS users(
     created_at TIMESTAMPTZ(0) NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ(0) NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);

@@ -104,7 +104,7 @@ func Seed(r repository.Repository) {
 		}
 	}
 
-	posts := generatePosts(len(randTitles), users)
+	posts := generatePosts(len(randContent), users)
 	for _, post := range posts {
 		if err := r.Posts.Create(ctx, post); err != nil {
 			fmt.Println("Error creating post:", err)
@@ -117,6 +117,14 @@ func Seed(r repository.Repository) {
 		if err := r.Comments.Create(ctx, comment); err != nil {
 			fmt.Println("Error creating comments:", err)
 			return
+		}
+	}
+
+	userFollows := generateUserFollows(len(usernames))
+	shuffle(userFollows)
+	for _, userFollow := range userFollows[:rand.IntN(len(userFollows))] {
+		if err := r.UserFollows.Follow(ctx, userFollow); err != nil {
+			fmt.Println("Error creating userfollows:", err)
 		}
 	}
 
@@ -136,6 +144,37 @@ func generateUsers(num int) []*repository.User {
 	}
 
 	return users
+}
+
+// permutation
+// P(n, 2) = n * (n - 2)
+// usernames = 26, n = 26
+// P(26, 2) = 26 * 25 = 650
+// (A follows B) != (B follows A)
+// No self-follows A != A and no repetitions
+func generateUserFollows(userCount int) []*repository.UserFollow {
+	var userFollows = make([]*repository.UserFollow, 0, userCount*userCount-1) // length 0, cap = userCount*userCount-1
+
+	for i := 1; i <= userCount; i++ {
+		// TERRIBLE idea
+		// Never take the address of a loop-scoped variable and store it
+		// var userFollow repository.UserFollow
+		for x := 1; x <= userCount; x++ {
+			if i != x {
+				// TERRIBLE idea
+				// userFollow.FollowedID = int64(i)
+				// userFollow.FollowerID = int64(x)
+				// userFollows = append(userFollows, &userFollow)
+
+				userFollows = append(userFollows, &repository.UserFollow{
+					FollowedID: int64(i),
+					FollowerID: int64(x),
+				})
+			}
+		}
+	}
+
+	return userFollows
 }
 
 func generatePosts(num int, users []*repository.User) []*repository.Post {
@@ -169,4 +208,11 @@ func generateComments(num int, users []*repository.User, posts []*repository.Pos
 	}
 
 	return comments
+}
+
+func shuffle[T any](s []T) {
+	r := rand.New(rand.NewPCG(1, 2))
+	r.Shuffle(len(s), func(i, j int) {
+		s[i], s[j] = s[j], s[i]
+	})
 }

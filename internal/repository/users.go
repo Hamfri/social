@@ -3,11 +3,13 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 )
 
 type Users interface {
 	Create(context.Context, *User) error
+	GetByID(context.Context, int64) (*User, error)
 }
 
 type User struct {
@@ -36,4 +38,35 @@ func (r *UserRepository) Create(ctx context.Context, user *User) error {
 	defer cancel()
 
 	return r.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+}
+
+func (r *UserRepository) GetByID(ctx context.Context, ID int64) (*User, error) {
+	query := `
+		SELECT id, username, email, password FROM users
+		WHERE id = $1
+	`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+
+	defer cancel()
+
+	var post User
+
+	err := r.DB.QueryRowContext(ctx, query, ID).Scan(
+		&post.ID,
+		&post.Username,
+		&post.Email,
+		&post.Password,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &post, nil
 }
