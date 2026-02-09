@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"social/internal/pagination"
 	"time"
 
 	"github.com/lib/pq"
@@ -14,7 +16,7 @@ type Posts interface {
 	GetByID(context.Context, int64) (*Post, error)
 	DeletePost(context.Context, int64) error
 	UpdatePost(context.Context, *Post) error
-	GetUserFeed(context.Context, int64) ([]*PostWithMetadata, error)
+	GetUserFeed(context.Context, int64, *pagination.Pagination, pagination.Filter) ([]*PostWithMetadata, error)
 }
 
 type Post struct {
@@ -159,7 +161,7 @@ func (r *PostRepository) DeletePost(ctx context.Context, postId int64) error {
 }
 
 // followedId equals the the authenticated user
-func (r PostRepository) GetUserFeed(ctx context.Context, followedID int64) ([]*PostWithMetadata, error) {
+func (r PostRepository) GetUserFeed(ctx context.Context, followedID int64, pagination *pagination.Pagination, filter pagination.Filter) ([]*PostWithMetadata, error) {
 	query := `
 		WITH related_users AS (
 		    -- users followed by the authenticated user
@@ -180,7 +182,7 @@ func (r PostRepository) GetUserFeed(ctx context.Context, followedID int64) ([]*P
 			-- as well so that we can return his/her posts too
 			SELECT $1 AS user_id
 		) 
-		SELECT p.id as post_id, p.title, p.content, p.tags, u.id, u.username, c.comments_count
+		SELECT COUNT(*) OVER(), p.id as post_id, p.title, p.content, p.tags, u.id, u.username, c.comments_count
 		FROM related_users ru
 		JOIN users u ON u.id = ru.user_id
 		JOIN posts p ON p.user_id = u.id
@@ -192,24 +194,40 @@ func (r PostRepository) GetUserFeed(ctx context.Context, followedID int64) ([]*P
 			GROUP BY post_id
 		) c ON c.post_id = p.id
 
-		GROUP BY p.id, u.id, u.username, c.comments_count
-		ORDER BY p.id
-	`
+		-- '||' concatenation operator
+		WHERE (p.title || ' ' || p.content) ILIKE '%' || $4 || '%'
+
+		-- if tags are provided filter by them if not don't filter
+		-- type cast to text '::text[]'
+		AND (p.tags @> $5 OR $5 = '{}'::text[])
+		ORDER BY p.` + fmt.Sprintf(`%s %s`, filter.SortColumn(), filter.SortDirection()) + ` LIMIT $2 OFFSET $3`
+
+	args := []any{
+		followedID,
+		pagination.PageSize,
+		pagination.Offset(),
+		filter.Search,
+		pq.Array(filter.Tags),
+	}
+	fmt.Println(filter.Search)
+
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
 
-	rows, err := r.DB.QueryContext(ctx, query, followedID)
+	rows, err := r.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
+	totalRecords := 0
 	var postsWithMetadata []*PostWithMetadata
 	for rows.Next() {
 		var p PostWithMetadata
 
 		err := rows.Scan(
+			&totalRecords,
 			&p.ID,
 			&p.Title,
 			&p.Content,
@@ -229,6 +247,8 @@ func (r PostRepository) GetUserFeed(ctx context.Context, followedID int64) ([]*P
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
+
+	pagination.TotalRecords = totalRecords
 
 	return postsWithMetadata, nil
 }
