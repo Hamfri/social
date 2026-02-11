@@ -38,3 +38,7 @@ migrate/force-version: confirm
 .PHONY: seed/database
 seed/database:
 	@go run ./cmd/seed
+
+.PHONY: gen/docs
+gen/docs:
+	@swag init -g ./api/main.go -d cmd,internal

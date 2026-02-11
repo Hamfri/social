@@ -25,9 +25,8 @@ func (app *application) notFoundErrorResponse(w http.ResponseWriter, r *http.Req
 	writeJSONError(w, http.StatusNotFound, message)
 }
 
-func (app *application) editConflictResponse(w http.ResponseWriter, r *http.Request, err error) {
+func (app *application) conflictResponse(w http.ResponseWriter, r *http.Request, err error) {
 	log.Printf("edit conflict error: %s method: %s path: %s", err.Error(), r.Method, r.URL.Path)
 
-	message := "edit conflict"
-	writeJSONError(w, http.StatusConflict, message)
+	writeJSONError(w, http.StatusConflict, err.Error())
 }

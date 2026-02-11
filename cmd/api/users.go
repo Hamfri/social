@@ -11,6 +11,18 @@ type userCtx string
 
 const userCtxKey = userCtx("user")
 
+// @Summary		Get user
+// @Description	get user by ID
+// @Tags			Users
+// @Accept			json
+// @Produce		json
+// @Param			id	path		int	true	"User ID"
+// @Success		200	{object}	repository.User
+// @Failure		400	{object}	error
+// @Failure		404	{object}	error
+// @Failure		500	{object}	error
+// @Security		ApiKeyAuth
+// @Router			/users/{id} [get]
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromCtx(r)
 
@@ -23,6 +35,18 @@ type AuthenticatedUser struct {
 	UserID int64 `json:"user_id"`
 }
 
+// @Summary		follow user
+// @Description	Follow a user
+// @Tags			Users
+// @Produce		json
+// @Param			id	path	int	true	"User ID"
+// @Success		204
+// @Failure		400	string		error	"you are already following that user"
+// @Failure		409	string	error	"self follow not allowed"
+// @Failure		404	string	error "record not found"
+// @Failure		500	{object}	error
+// @Security		ApiKeyAuth
+// @Router			/users/{id}/follow [put]
 func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request) {
 	followedUser := getUserFromCtx(r)
 
@@ -44,6 +68,8 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 		switch {
 		case errors.Is(err, repository.ErrAlreadyFollowing):
 			app.badRequestErrorResponse(w, r, err)
+		case errors.Is(err, repository.ErrNoSelfFollow):
+			app.conflictResponse(w, r, err)
 		default:
 			app.internalServerErrorResponse(w, r, err)
 		}
@@ -56,6 +82,16 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 
 }
 
+// @Summary		Unfollow user
+// @Description	Unfollow a user
+// @Tags			Users
+// @Produce		json
+// @Param			id	path	int	true	"User ID"
+// @Success		204
+// @Failure		404	{object}	error
+// @Failure		500	{object}	error
+// @Security		ApiKeyAuth
+// @Router			/users/{id}/unfollow [delete]
 func (app *application) unFollowUserHandler(w http.ResponseWriter, r *http.Request) {
 	followedUser := getUserFromCtx(r)
 

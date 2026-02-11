@@ -1,3 +1,5 @@
 .env
 bin/*
 !bin/.gitkeep
+docs/*
+!docs/.gitkeep

@@ -17,6 +17,16 @@ type CreatePostPayload struct {
 	Tags    []string `json:"tags"`
 }
 
+// @Summary		Create a post
+// @Description	create a post
+// @Tags			Posts
+// @Accept			json
+// @Produce		json
+// @Success		200	{object}	repository.Post
+// @Failure		400	{object}	error
+// @Failure		500	{object}	error
+// @Security		ApiKeyAuth
+// @Router			/posts [post]
 func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request) {
 	var payload CreatePostPayload
 	if err := readJSON(w, r, &payload); err != nil {
@@ -51,6 +61,18 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// @Summary		Get Posts
+// @Description	Get post by ID
+// @Tags			Posts
+// @Accept			json
+// @Produce		json
+// @Param			id	path		int	true	"Post ID"
+// @Success		200	{object}	repository.Posts
+// @Failure		400	{object}	error
+// @Failure		404	{object}	error
+// @Failure		500	{object}	error
+// @Security		ApiKeyAuth
+// @Router			/posts/{id} [get]
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	posts := getPostFromCtx(r)
 
@@ -69,6 +91,19 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary		Update Post
+// @Description	Update post
+// @Tags			Posts
+// @Accept			json
+// @Produce		json
+// @Param			id	path		int	true	"Post ID"
+// @Success		200	{object}	repository.Posts
+// @Failure		400	{object}	error
+// @Failure		404	{object}	error
+// @Failure		409	{object}    error
+// @Failure		500	{object}	error
+// @Security		ApiKeyAuth
+// @Router			/posts/{id} [patch]
 func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
 	post := getPostFromCtx(r)
 
@@ -105,7 +140,7 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrEditConflict):
-			app.editConflictResponse(w, r, err)
+			app.conflictResponse(w, r, err)
 		default:
 			app.internalServerErrorResponse(w, r, err)
 		}
@@ -117,6 +152,18 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// @Summary		Delete Post
+// @Description	Delete post
+// @Tags			Posts
+// @Accept			json
+// @Produce		json
+// @Param			id	path		int	true	"Post ID"
+// @Success		204
+// @Failure		400	{object}	error
+// @Failure		404	{object}	error
+// @Failure		500	{object}	error
+// @Security		ApiKeyAuth
+// @Router			/posts/{id} [delete]
 func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
 	postId, err := app.readIntParam(r, "id")
 	if err != nil {

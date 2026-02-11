@@ -11,6 +11,7 @@ import (
 
 var (
 	ErrAlreadyFollowing = errors.New("you are already following that user")
+	ErrNoSelfFollow     = errors.New("self follow not allowed")
 )
 
 type UserFollow struct {
@@ -49,8 +50,10 @@ func (r *UserFollowRepository) Follow(ctx context.Context, userFollow *UserFollo
 	if err != nil {
 		switch {
 		// 23505 duplicate key value violates unique constraint
-		case errors.As(err, &pqErr) && pqErr.Code == "23505":
+		case errors.As(err, &pqErr) && pqErr.Constraint == "user_follows_pkey":
 			return ErrAlreadyFollowing
+		case errors.As(err, &pqErr) && pqErr.Constraint == "user_follows_no_self_follow":
+			return ErrNoSelfFollow
 		default:
 			return err
 		}

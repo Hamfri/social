@@ -3,6 +3,9 @@ CREATE TABLE IF NOT EXISTS user_follows (
     follower_id BIGINT NOT NULL, -- other user accounts following the main user
     created_at TIMESTAMPTZ(0) NOT NULL DEFAULT NOW(),
 
+    CONSTRAINT user_follows_no_self_follow
+        CHECK (follower_id <> followed_id),
+
     FOREIGN KEY (followed_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
     
