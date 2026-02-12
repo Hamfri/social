@@ -1,11 +1,12 @@
 package main
 
 import (
-	"log"
 	"os"
 	"social/internal/db"
 	"social/internal/env"
 	"social/internal/repository"
+
+	"go.uber.org/zap"
 )
 
 const version = "0.0.3"
@@ -38,24 +39,28 @@ func main() {
 		},
 	}
 
+	logger := zap.Must(zap.NewProduction()).Sugar()
+	defer logger.Sync()
+
 	db, err := db.New(cfg.db.dsn, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
 	if err != nil {
-		log.Panic(err)
+		logger.Fatal(err)
 		os.Exit(1)
 	}
 
 	defer db.Close()
 
-	log.Printf("database connection pool established")
+	logger.Info("database connection pool established")
 
 	repository := repository.New(db)
 
 	app := &application{
 		config:     cfg,
 		repository: repository,
+		logger:     logger,
 	}
 
 	mux := app.mount()
 
-	log.Fatal(app.run(mux))
+	logger.Fatal(app.run(mux))
 }

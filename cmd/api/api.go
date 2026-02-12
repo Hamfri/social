@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"social/docs"
 	"social/internal/repository"
@@ -11,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
+	"go.uber.org/zap"
 )
 
 type dbConfig struct {
@@ -29,6 +29,7 @@ type config struct {
 type application struct {
 	config     config
 	repository repository.Repository
+	logger     *zap.SugaredLogger
 }
 
 func (app *application) mount() http.Handler {
@@ -92,7 +93,7 @@ func (app *application) run(mux http.Handler) error {
 		IdleTimeout:  time.Minute,
 	}
 
-	log.Printf("server started on port %s", app.config.port)
+	app.logger.Infow("server started on", "port", app.config.port, "env", app.config.env)
 
 	return srv.ListenAndServe()
 }
