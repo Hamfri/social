@@ -2,9 +2,10 @@ CREATE EXTENSION IF NOT EXISTS citext; -- dataType to support case insensitive c
 
 CREATE TABLE IF NOT EXISTS users(
     id BIGSERIAL PRIMARY KEY,
-    username TEXT NOT NULL,
+    username TEXT UNIQUE NOT NULL,
     email CITEXT UNIQUE NOT NULL,
     password BYTEA NOT NULL,
+    activated BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ(0) NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ(0) NOT NULL DEFAULT NOW()
 );

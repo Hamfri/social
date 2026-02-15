@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"math/rand/v2"
 	"social/internal/repository"
@@ -93,21 +94,30 @@ var randTags = []string{
 	"devlife",
 }
 
-func Seed(r repository.Repository) {
+func Seed(r repository.Repository, db *sql.DB) {
 	ctx := context.Background()
 
 	users := generateUsers(len(usernames))
+
+	tx, _ := db.BeginTx(ctx, nil)
+
 	for _, user := range users {
-		if err := r.Users.Create(ctx, user); err != nil {
-			fmt.Println("Error creating user:", err)
+		if err := r.Users.Create(ctx, tx, user); err != nil {
+
+			_ = tx.Rollback()
+
+			fmt.Println("error creating user:", err)
+
 			return
 		}
 	}
 
+	_ = tx.Commit()
+
 	posts := generatePosts(len(randContent), users)
 	for _, post := range posts {
 		if err := r.Posts.Create(ctx, post); err != nil {
-			fmt.Println("Error creating post:", err)
+			fmt.Println("error creating post:", err)
 			return
 		}
 	}
@@ -115,7 +125,7 @@ func Seed(r repository.Repository) {
 	comments := generateComments(len(posts), users, posts)
 	for _, comment := range comments {
 		if err := r.Comments.Create(ctx, comment); err != nil {
-			fmt.Println("Error creating comments:", err)
+			fmt.Println("error creating comments:", err)
 			return
 		}
 	}
@@ -124,7 +134,7 @@ func Seed(r repository.Repository) {
 	shuffle(userFollows)
 	for _, userFollow := range userFollows[:rand.IntN(len(userFollows))] {
 		if err := r.UserFollows.Follow(ctx, userFollow); err != nil {
-			fmt.Println("Error creating userfollows:", err)
+			fmt.Println("error creating userfollows:", err)
 		}
 	}
 
@@ -139,7 +149,12 @@ func generateUsers(num int) []*repository.User {
 		users[i] = &repository.User{
 			Username: username,
 			Email:    username + "@hadaa.com",
-			Password: "qwerty1234",
+		}
+
+		err := users[i].Password.Set("qwerty1234")
+		if err != nil {
+			fmt.Printf("error when hashing password for %s", users[i].Email)
+			break
 		}
 	}
 

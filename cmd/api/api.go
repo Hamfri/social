@@ -72,6 +72,13 @@ func (app *application) mount() http.Handler {
 				r.Get("/feed", app.getUserFeedHandler)
 			})
 		})
+
+		r.Route("/accounts", func(r chi.Router) {
+			r.Post("/register", app.registerAccountHandler)
+			r.Put("/activate", app.activateAccountHandler)
+			r.Post("/login", app.loginAccountHandler)
+			r.Delete("/logout", app.loginAccountHandler)
+		})
 	})
 
 	return r

@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const version = "0.0.3"
+const version = "0.0.1"
 
 //	@title			Social
 //	@description	simple social network implementation
