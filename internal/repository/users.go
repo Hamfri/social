@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/lib/pq"
@@ -21,7 +20,7 @@ type Users interface {
 	GetByID(context.Context, int64) (*User, error)
 	Create(context.Context, *sql.Tx, *User) error
 	Update(context.Context, *sql.Tx, *User) error
-	CreateAndInvite(context.Context, *User) error
+	CreateAndInvite(context.Context, *User) (*string, error)
 	GetUserByToken(context.Context, *sql.Tx, string, string) (*User, error)
 	Activate(context.Context, string, string) (*User, error)
 }
@@ -177,19 +176,18 @@ func (r *UserRepository) GetUserByToken(ctx context.Context, tx *sql.Tx, scope, 
 	return &user, nil
 }
 
-func (r *UserRepository) CreateAndInvite(ctx context.Context, user *User) error {
-	return WithTx(ctx, r.DB, func(tx *sql.Tx) error {
+func (r *UserRepository) CreateAndInvite(ctx context.Context, user *User) (*string, error) {
+	return WithTxAndResult(ctx, r.DB, func(tx *sql.Tx) (*string, error) {
 		if err := r.Create(ctx, tx, user); err != nil {
-			return err
+			return nil, err
 		}
 
 		token, err := r.UserTokens.Create(ctx, tx, user.ID, 24*time.Hour, ScopeActivation)
-		fmt.Println("Token here", token)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		return nil
+		return &token.PlaintText, nil
 	})
 }
 

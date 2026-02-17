@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"social/docs"
+	"social/internal/mailer"
 	"social/internal/repository"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -19,17 +21,27 @@ type dbConfig struct {
 	maxIdleConns int
 	maxIdleTime  string
 }
+
+type smtp struct {
+	host     string
+	port     int
+	username string
+	password string
+	sender   string
+}
 type config struct {
 	port   string
 	env    string
 	db     dbConfig
 	apiURL string
+	smtp   smtp
 }
-
 type application struct {
 	config     config
 	repository repository.Repository
 	logger     *zap.SugaredLogger
+	mailer     *mailer.SMTPMailer
+	wg         *sync.WaitGroup
 }
 
 func (app *application) mount() http.Handler {

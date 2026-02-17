@@ -4,7 +4,9 @@ import (
 	"os"
 	"social/internal/db"
 	"social/internal/env"
+	"social/internal/mailer"
 	"social/internal/repository"
+	"sync"
 
 	"go.uber.org/zap"
 )
@@ -37,6 +39,13 @@ func main() {
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 30),
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "15m"),
 		},
+		smtp: smtp{
+			host:     env.GetString("SMTP_HOST", ""),
+			port:     env.GetInt("SMTP_PORT", 25),
+			username: env.GetString("SMTP_USERNAME", ""),
+			password: env.GetString("SMTP_PASSWORD", ""),
+			sender:   env.GetString("SMTP_SENDER", ""),
+		},
 	}
 
 	logger := zap.Must(zap.NewProduction()).Sugar()
@@ -53,11 +62,18 @@ func main() {
 	logger.Info("database connection pool established")
 
 	repository := repository.New(db)
+	mailer, err := mailer.NewMailtrap(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
 
 	app := &application{
 		config:     cfg,
 		repository: repository,
 		logger:     logger,
+		mailer:     mailer,
+		wg:         &sync.WaitGroup{},
 	}
 
 	mux := app.mount()

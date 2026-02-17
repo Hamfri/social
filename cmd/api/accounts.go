@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"social/internal/mailer"
 	"social/internal/repository"
 )
 
@@ -49,7 +50,7 @@ func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	err = app.repository.Users.CreateAndInvite(ctx, &user)
+	token, err := app.repository.Users.CreateAndInvite(ctx, &user)
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrEmailTaken):
@@ -61,6 +62,19 @@ func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Re
 		}
 		return
 	}
+
+	app.backgroundTaskRunner(func() {
+		data := map[string]any{
+			"username": user.Username,
+			"token":    *token,
+		}
+
+		recipient := user.Username + "<" + user.Email + ">"
+		err = app.mailer.Send(recipient, mailer.UserActivationTemplate, data)
+		if err != nil {
+			app.logger.Error(err.Error())
+		}
+	})
 
 	if err = writeJSON(w, http.StatusCreated, user); err != nil {
 		app.internalServerErrorResponse(w, r, err)

@@ -1,0 +1,26 @@
+{{ define "subject" }} Account activation token {{ end }}
+{{ define "plainBody" }}
+    Hey {{ .username }},
+
+    Here is your single use account activation token {{ .token }}
+
+    Greetings, 
+    Team social.
+{{ end }}
+
+{{ define "htmlBody" }}
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        <p>Hey {{ .username }},</p>
+        <p>Here is your single use account activation token <pre><i>{{ .token }}</i></pre></p>
+        <p>Greetings,</p>
+        <p>Team social.</p>
+    </body>
+    </html>
+{{ end }}

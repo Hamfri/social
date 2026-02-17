@@ -18,3 +18,18 @@ func (app *application) readIntParam(r *http.Request, key string) (int64, error)
 	}
 	return val, nil
 }
+
+// background task runner
+func (app *application) backgroundTaskRunner(fn func()) {
+	app.wg.Go(func() {
+		// panic recovery
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.Errorf("%v", err)
+			}
+		}()
+
+		// exec the arbitrary func passed in as a param
+		fn()
+	})
+}
