@@ -5,23 +5,29 @@ import (
 	"net/http"
 	"social/internal/mailer"
 	"social/internal/repository"
+	"strconv"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
-type registerUserPayload struct {
-	Username string `json:"username" validate:"required,max=50"`
+type loginCredentials struct {
 	Email    string `json:"email" validate:"required,email,max=50"`
 	Password string `json:"password" validate:"required,min=3,max=72"`
 }
+type registerUserPayload struct {
+	Username string `json:"username" validate:"required,max=50"`
+	loginCredentials
+}
 
-// @Summary User account registration
+// @Summary register
 // @Description User account registration
 // @Tags Accounts
 // @Accept json
 // @Produce json
-// @Param payload body registerUserPayload true "User Credentials"
-// @Success 201 {object} repository.User "User registered"
-// @Failure 400 {object} error
-// @Failure 400 {object} error
+// @Param payload body registerUserPayload true "registration Credentials"
+// @Success 201 {object} repository.User
+// @Failure 400 {object} ErrorResponse
 // @Router /accounts/register [post]
 func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Request) {
 	var payload registerUserPayload
@@ -76,20 +82,34 @@ func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Re
 		}
 	})
 
-	if err = writeJSON(w, http.StatusCreated, user); err != nil {
+	if err = app.jsonResponse(w, http.StatusCreated, user); err != nil {
 		app.internalServerErrorResponse(w, r, err)
 	}
 }
 
 type activateAccountPayload struct {
-	Token string `json:"token" validate:"required,min=26,max=26"`
+	Token string `json:"token" validate:"required,min=26,max=26" example:"7ND32BQSB2IYDR5CP2O42XME57"`
 }
 
+// @Summary activate account
+// @Description User account activation
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param payload body activateAccountPayload true "Activate account payload "
+// @Success 200 {object} repository.User
+// @Failure 400 {object} ErrorResponse
+// @Router /accounts/activate [put]
 func (app *application) activateAccountHandler(w http.ResponseWriter, r *http.Request) {
 	var payload activateAccountPayload
 
 	err := readJSON(w, r, &payload)
 	if err != nil {
+		app.badRequestErrorResponse(w, r, err)
+		return
+	}
+
+	if err = Validate.Struct(payload); err != nil {
 		app.badRequestErrorResponse(w, r, err)
 		return
 	}
@@ -112,12 +132,78 @@ func (app *application) activateAccountHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	err = writeJSON(w, http.StatusOK, user)
+	err = app.jsonResponse(w, http.StatusOK, user)
 	if err != nil {
 		app.internalServerErrorResponse(w, r, err)
 	}
 }
 
-func (app *application) loginAccountHandler(w http.ResponseWriter, r *http.Request) {}
+// @Summary login
+// @Description login
+// @Tags Accounts
+// @Accept json
+// @Produce json
+// @Param payload body loginCredentials true "Login credentials"
+// @Success 200 {object} repository.User
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Router /accounts/login [post]
+func (app *application) loginAccountHandler(w http.ResponseWriter, r *http.Request) {
+	var payload loginCredentials
+
+	err := readJSON(w, r, &payload)
+	if err != nil {
+		app.badRequestErrorResponse(w, r, err)
+		return
+	}
+
+	if err = Validate.Struct(payload); err != nil {
+		app.badRequestErrorResponse(w, r, err)
+		return
+	}
+
+	ctx := r.Context()
+	user, err := app.repository.Users.GetByEmail(ctx, payload.Email)
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrRecordNotFound):
+			app.unauthorizedResponse(w, r, err)
+		default:
+			app.internalServerErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	if !user.Activated {
+		app.badRequestErrorResponse(w, r, errors.New("please activate your account"))
+		return
+	}
+
+	_, err = user.Password.Matches(payload.Password)
+	if err != nil {
+		app.unauthorizedResponse(w, r, err)
+		return
+	}
+
+	claims := jwt.MapClaims{
+		"sub": strconv.Itoa(int(user.ID)),
+		"exp": time.Now().Add(app.config.auth.token.exp * time.Hour).Unix(),
+		"iat": time.Now().Unix(),
+		"nbf": time.Now().Unix(),
+		"iss": app.config.auth.token.iss,
+		"aud": app.config.auth.token.aud,
+	}
+
+	token, err := app.authenticator.GenerateToken(claims)
+	if err != nil {
+		app.internalServerErrorResponse(w, r, err)
+		return
+	}
+
+	if err = app.jsonResponse(w, http.StatusOK, token); err != nil {
+		app.internalServerErrorResponse(w, r, err)
+	}
+
+}
 
 func (app *application) logoutAccountHandler(w http.ResponseWriter, r *http.Request) {}

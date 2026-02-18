@@ -2,11 +2,13 @@ package main
 
 import (
 	"os"
+	"social/internal/auth"
 	"social/internal/db"
 	"social/internal/env"
 	"social/internal/mailer"
 	"social/internal/repository"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -46,6 +48,18 @@ func main() {
 			password: env.GetString("SMTP_PASSWORD", ""),
 			sender:   env.GetString("SMTP_SENDER", ""),
 		},
+		auth: authConfig{
+			basic: basicConfig{
+				username: env.GetString("BASIC_AUTH_USERNAME", "admin"),
+				password: env.GetString("BASIC_AUTH_PASSWORD", "admin"),
+			},
+			token: tokenConfig{
+				secret: env.GetString("JWT_SECRET", ""),
+				aud:    env.GetString("JWT_AUD", ""),
+				iss:    env.GetString("JWT_ISS", ""),
+				exp:    time.Duration(env.GetInt("JWT_EXP", 24)),
+			},
+		},
 	}
 
 	logger := zap.Must(zap.NewProduction()).Sugar()
@@ -68,12 +82,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	JWTauthenticator := auth.NewJWTAuthenticator(cfg.auth.token.secret, cfg.auth.token.aud, cfg.auth.token.iss)
+
 	app := &application{
-		config:     cfg,
-		repository: repository,
-		logger:     logger,
-		mailer:     mailer,
-		wg:         &sync.WaitGroup{},
+		config:        cfg,
+		repository:    repository,
+		logger:        logger,
+		mailer:        mailer,
+		wg:            &sync.WaitGroup{},
+		authenticator: JWTauthenticator,
 	}
 
 	mux := app.mount()

@@ -12,12 +12,14 @@ import (
 )
 
 var (
-	ErrEmailTaken    = errors.New("email is already taken")
-	ErrUsernameTaken = errors.New("username already taken")
+	ErrEmailTaken             = errors.New("email is already taken")
+	ErrUsernameTaken          = errors.New("username already taken")
+	ErrInvalidEmailOrPassword = errors.New("invalid password or email")
 )
 
 type Users interface {
 	GetByID(context.Context, int64) (*User, error)
+	GetByEmail(ctx context.Context, email string) (*User, error)
 	Create(context.Context, *sql.Tx, *User) error
 	Update(context.Context, *sql.Tx, *User) error
 	CreateAndInvite(context.Context, *User) (*string, error)
@@ -108,23 +110,24 @@ func (r *UserRepository) Update(ctx context.Context, tx *sql.Tx, user *User) err
 	return nil
 }
 
-func (r *UserRepository) GetByID(ctx context.Context, ID int64) (*User, error) {
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*User, error) {
 	query := `
-		SELECT id, username, email, password FROM users
-		WHERE id = $1
+		SELECT id, username, email, password, activated FROM users
+		WHERE email = $1
 	`
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 
 	defer cancel()
 
-	var post User
+	var user User
 
-	err := r.DB.QueryRowContext(ctx, query, ID).Scan(
-		&post.ID,
-		&post.Username,
-		&post.Email,
-		&post.Password,
+	err := r.DB.QueryRowContext(ctx, query, email).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.Password.hash,
+		&user.Activated,
 	)
 
 	if err != nil {
@@ -136,7 +139,37 @@ func (r *UserRepository) GetByID(ctx context.Context, ID int64) (*User, error) {
 		}
 	}
 
-	return &post, nil
+	return &user, nil
+}
+
+func (r *UserRepository) GetByID(ctx context.Context, ID int64) (*User, error) {
+	query := `
+		SELECT id, username, email FROM users
+		WHERE id = $1
+	`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+
+	defer cancel()
+
+	var user User
+
+	err := r.DB.QueryRowContext(ctx, query, ID).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &user, nil
 }
 
 func (r *UserRepository) GetUserByToken(ctx context.Context, tx *sql.Tx, scope, plainTextToken string) (*User, error) {
@@ -235,7 +268,7 @@ func (p *password) Matches(password string) (bool, error) {
 	if err != nil {
 		switch {
 		case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):
-			return false, err // errors.New("password or email")
+			return false, ErrInvalidEmailOrPassword
 		default:
 			return false, err
 		}

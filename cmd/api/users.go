@@ -18,10 +18,13 @@ const userCtxKey = userCtx("user")
 // @Produce		json
 // @Param			id	path		int	true	"User ID"
 // @Success		200	{object}	repository.User
-// @Failure		400	{object}	error
-// @Failure		404	{object}	error
-// @Failure		500	{object}	error
-// @Security		ApiKeyAuth
+// @Failure		400	{object}	ErrorResponse
+// @Failure		404	{object}	ErrorResponse
+// @Failure		500	{object}	ErrorResponse
+// @Security ApiKeyAuth
+// @SecurityDefinitions.apiKey		ApiKeyAuth
+// @in header
+// @name Authorization
 // @Router			/users/{id} [get]
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromCtx(r)
@@ -31,36 +34,28 @@ func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type AuthenticatedUser struct {
-	UserID int64 `json:"user_id"`
-}
-
 // @Summary		follow user
 // @Description	Follow a user
 // @Tags			Users
 // @Produce		json
 // @Param			id	path	int	true	"User ID"
 // @Success		204
-// @Failure		400	string		error	"you are already following that user"
-// @Failure		409	string	error	"self follow not allowed"
-// @Failure		404	string	error "record not found"
-// @Failure		500	{object}	error
-// @Security		ApiKeyAuth
+// @Failure		400 {object}	ErrorResponse
+// @Failure		409 {object}	ErrorResponse
+// @Failure		404 {object}	ErrorResponse
+// @Failure		500	{object}	ErrorResponse
+// @Security ApiKeyAuth
+// @SecurityDefinitions.apiKey		ApiKeyAuth
+// @in header
+// @name Authorization
 // @Router			/users/{id}/follow [put]
 func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request) {
+	user := app.getAuthUserContext(r)
 	followedUser := getUserFromCtx(r)
-
-	// Todo // use authenticated user id
-	var authenticatedUser AuthenticatedUser
-
-	if err := readJSON(w, r, &authenticatedUser); err != nil {
-		app.badRequestErrorResponse(w, r, err)
-		return
-	}
 
 	userFollow := repository.UserFollow{
 		FollowedID: followedUser.ID,
-		FollowerID: authenticatedUser.UserID,
+		FollowerID: user.ID,
 	}
 
 	err := app.repository.UserFollows.Follow(r.Context(), &userFollow)
@@ -88,24 +83,20 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 // @Produce		json
 // @Param			id	path	int	true	"User ID"
 // @Success		204
-// @Failure		404	{object}	error
-// @Failure		500	{object}	error
-// @Security		ApiKeyAuth
+// @Failure		404	{object}	ErrorResponse
+// @Failure		500	{object}	ErrorResponse
+// @Security ApiKeyAuth
+// @SecurityDefinitions.apiKey		ApiKeyAuth
+// @in header
+// @name Authorization
 // @Router			/users/{id}/unfollow [delete]
 func (app *application) unFollowUserHandler(w http.ResponseWriter, r *http.Request) {
+	user := app.getAuthUserContext(r)
 	followedUser := getUserFromCtx(r)
-
-	// Todo // use authenticated user id
-	var authenticatedUser AuthenticatedUser
-
-	if err := readJSON(w, r, &authenticatedUser); err != nil {
-		app.badRequestErrorResponse(w, r, err)
-		return
-	}
 
 	userFollow := repository.UserFollow{
 		FollowedID: followedUser.ID,
-		FollowerID: authenticatedUser.UserID,
+		FollowerID: user.ID,
 	}
 
 	ctx := r.Context()

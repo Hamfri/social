@@ -41,12 +41,12 @@ func readJSON(w http.ResponseWriter, r *http.Request, data any) error {
 	return decoder.Decode(data)
 }
 
-func writeJSONError(w http.ResponseWriter, status int, message string) error {
-	type envelope struct {
-		Error string `json:"error"`
-	}
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
 
-	return writeJSON(w, status, &envelope{Error: message})
+func writeJSONError(w http.ResponseWriter, status int, message string) error {
+	return writeJSON(w, status, &ErrorResponse{Error: message})
 }
 
 func (app *application) jsonResponse(w http.ResponseWriter, status int, data any) error {

@@ -17,10 +17,13 @@ import (
 // @Param			tags	query		 string	false "tags"
 // @Param			search	query		string false	"search"
 // @Success		200	{object}	[]repository.PostWithMetadata
-// @Failure		400	{object}	error
-// @Failure		404	{object}	error
-// @Failure		500	{object}	error
-// @Security		ApiKeyAuth
+// @Failure		400	{object}	ErrorResponse
+// @Failure		404	{object}	ErrorResponse
+// @Failure		500	{object}	ErrorResponse
+// @Security ApiKeyAuth
+// @SecurityDefinitions.apiKey		ApiKeyAuth
+// @in header
+// @name Authorization
 // @Router			/users/feed [get]
 func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

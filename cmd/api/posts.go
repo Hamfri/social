@@ -23,9 +23,12 @@ type CreatePostPayload struct {
 // @Accept			json
 // @Produce		json
 // @Success		200	{object}	repository.Post
-// @Failure		400	{object}	error
-// @Failure		500	{object}	error
-// @Security		ApiKeyAuth
+// @Failure		400	{object}	ErrorResponse
+// @Failure		500	{object}	ErrorResponse
+// @Security ApiKeyAuth
+// @SecurityDefinitions.apiKey		ApiKeyAuth
+// @in header
+// @name Authorization
 // @Router			/posts [post]
 func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request) {
 	var payload CreatePostPayload
@@ -34,9 +37,9 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	userId := 1
-
 	ctx := r.Context()
+
+	user := app.getAuthUserContext(r)
 
 	if err := Validate.Struct(payload); err != nil {
 		app.badRequestErrorResponse(w, r, err)
@@ -47,7 +50,7 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 		Title:   payload.Title,
 		Content: payload.Content,
 		Tags:    payload.Tags,
-		UserID:  int64(userId),
+		UserID:  user.ID,
 	}
 
 	if err := app.repository.Posts.Create(ctx, post); err != nil {
@@ -68,10 +71,13 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 // @Produce		json
 // @Param			id	path		int	true	"Post ID"
 // @Success		200	{object}	repository.Posts
-// @Failure		400	{object}	error
-// @Failure		404	{object}	error
-// @Failure		500	{object}	error
-// @Security		ApiKeyAuth
+// @Failure		400	{object}	ErrorResponse
+// @Failure		404	{object}	ErrorResponse
+// @Failure		500	{object}	ErrorResponse
+// @Security ApiKeyAuth
+// @SecurityDefinitions.apiKey		ApiKeyAuth
+// @in header
+// @name Authorization
 // @Router			/posts/{id} [get]
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	posts := getPostFromCtx(r)
@@ -98,11 +104,14 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 // @Produce		json
 // @Param			id	path		int	true	"Post ID"
 // @Success		200	{object}	repository.Posts
-// @Failure		400	{object}	error
-// @Failure		404	{object}	error
-// @Failure		409	{object}    error
-// @Failure		500	{object}	error
-// @Security		ApiKeyAuth
+// @Failure		400	{object}	ErrorResponse
+// @Failure		404	{object}	ErrorResponse
+// @Failure		409	{object}    ErrorResponse
+// @Failure		500	{object}	ErrorResponse
+// @Security ApiKeyAuth
+// @SecurityDefinitions.apiKey		ApiKeyAuth
+// @in header
+// @name Authorization
 // @Router			/posts/{id} [patch]
 func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
 	post := getPostFromCtx(r)
@@ -159,10 +168,13 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 // @Produce		json
 // @Param			id	path		int	true	"Post ID"
 // @Success		204
-// @Failure		400	{object}	error
-// @Failure		404	{object}	error
-// @Failure		500	{object}	error
-// @Security		ApiKeyAuth
+// @Failure		400	{object}	ErrorResponse
+// @Failure		404	{object}	ErrorResponse
+// @Failure		500	{object}	ErrorResponse
+// @Security ApiKeyAuth
+// @SecurityDefinitions.apiKey		ApiKeyAuth
+// @in header
+// @name Authorization
 // @Router			/posts/{id} [delete]
 func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
 	postId, err := app.readIntParam(r, "id")

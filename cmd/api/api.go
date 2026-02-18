@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"social/docs"
+	"social/internal/auth"
 	"social/internal/mailer"
 	"social/internal/repository"
 	"sync"
@@ -29,19 +30,40 @@ type smtp struct {
 	password string
 	sender   string
 }
+
+// Terrible idea
+// Don't use in any production system
+type basicConfig struct {
+	username string
+	password string
+}
+
+type tokenConfig struct {
+	secret string
+	exp    time.Duration
+	iss    string
+	aud    string
+}
+type authConfig struct {
+	basic basicConfig
+	token tokenConfig
+}
+
 type config struct {
 	port   string
 	env    string
 	db     dbConfig
 	apiURL string
 	smtp   smtp
+	auth   authConfig
 }
 type application struct {
-	config     config
-	repository repository.Repository
-	logger     *zap.SugaredLogger
-	mailer     *mailer.SMTPMailer
-	wg         *sync.WaitGroup
+	config        config
+	repository    repository.Repository
+	logger        *zap.SugaredLogger
+	mailer        *mailer.SMTPMailer
+	wg            *sync.WaitGroup
+	authenticator *auth.JWTAuthenticator
 }
 
 func (app *application) mount() http.Handler {
@@ -55,13 +77,19 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	r.Route("/v1", func(r chi.Router) {
-		r.Get("/health", app.healthCheckHandler)
+		r.Group(func(r chi.Router) {
+			// Terrible idea
+			// in prod block such routes using nginx or caddy and only allow access via localhost
+			// we can use an ssh tunnel locally to access the route
+			r.Use(app.BasicAuthMiddleware)
+			r.Get("/health", app.healthCheckHandler)
+			docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.port)
 
-		docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.port)
-
-		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
+			r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
+		})
 
 		r.Route("/posts", func(r chi.Router) {
+			r.Use(app.TokenAuthMiddleware)
 			r.Post("/", app.createPostHandler)
 
 			r.Route("/{id}", func(r chi.Router) {
@@ -73,6 +101,7 @@ func (app *application) mount() http.Handler {
 		})
 
 		r.Route("/users", func(r chi.Router) {
+			r.Use(app.TokenAuthMiddleware)
 			r.Route("/{id}", func(r chi.Router) {
 				r.Use(app.usersContextMiddleware)
 				r.Get("/", app.getUserHandler)
