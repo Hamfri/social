@@ -33,8 +33,10 @@ type User struct {
 	Email     string    `json:"email"`
 	Password  password  `json:"-"`
 	Activated bool      `json:"activated"`
+	RoleID    int64     `json:"role_id"`
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
+	Role      Role
 }
 
 type UserRepository struct {
@@ -43,21 +45,28 @@ type UserRepository struct {
 	// use services instead to avoid creating spaghetti code
 	// Dependency injection
 	UserTokens
+	Roles
 }
 
 func (r *UserRepository) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 	query := `
 		INSERT INTO users
-		(username, email, password)
-		VALUES($1, $2, $3)
+		(username, email, password, role_id)
+		VALUES($1, $2, $3, (SELECT id FROM roles WHERE name=$4))
 		RETURNING id, created_at, updated_at
 	`
-	args := []any{user.Username, user.Email, user.Password.hash}
+
+	role := user.Role.Name
+	if role == "" {
+		role = "user"
+	}
+
+	args := []any{user.Username, user.Email, user.Password.hash, role}
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
 
-	err := tx.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+	err := tx.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.RoleID)
 
 	var pqErr *pq.Error
 
@@ -144,8 +153,9 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*User, e
 
 func (r *UserRepository) GetByID(ctx context.Context, ID int64) (*User, error) {
 	query := `
-		SELECT id, username, email FROM users
-		WHERE id = $1
+		SELECT u.id, u.username, u.email, r.id, r.description, r.level, r.name FROM users u
+		INNER JOIN roles r on r.id = u.role_id
+		WHERE u.id = $1
 	`
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
@@ -158,6 +168,10 @@ func (r *UserRepository) GetByID(ctx context.Context, ID int64) (*User, error) {
 		&user.ID,
 		&user.Username,
 		&user.Email,
+		&user.Role.ID,
+		&user.Role.Description,
+		&user.Role.Level,
+		&user.Role.Name,
 	)
 
 	if err != nil {

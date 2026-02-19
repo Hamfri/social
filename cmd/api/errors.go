@@ -30,6 +30,7 @@ func (app *application) conflictResponse(w http.ResponseWriter, r *http.Request,
 	writeJSONError(w, http.StatusConflict, err.Error())
 }
 
+// authentication
 func (app *application) unauthorizedBasicResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.logger.Warnw("unauthorized error", "error", err.Error(), "method", r.Method, "path", r.URL.Path)
 
@@ -38,7 +39,16 @@ func (app *application) unauthorizedBasicResponse(w http.ResponseWriter, r *http
 	writeJSONError(w, http.StatusUnauthorized, err.Error())
 }
 
+// authentication
 func (app *application) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.logger.Warnw("unauthorized error", "error", err.Error(), "method", r.Method, "path", r.URL.Path)
 	writeJSONError(w, http.StatusUnauthorized, err.Error())
+}
+
+// authorization
+func (app *application) notPermittedResponse(w http.ResponseWriter, r *http.Request) {
+	message := "your account doesn't have the necessary permissions to access this resource"
+
+	app.logger.Warnw(message, "method", r.Method, "path", r.URL.Path)
+	writeJSONError(w, http.StatusForbidden, message)
 }

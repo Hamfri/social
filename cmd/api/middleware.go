@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"social/internal/repository"
 	"strconv"
 	"strings"
 
@@ -94,4 +96,39 @@ func (app *application) TokenAuthMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (app *application) CheckPostOwnership(role string, next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.getAuthUserContext(r)
+
+		post := getPostFromCtx(r)
+
+		if post.UserID != user.ID {
+			app.notPermittedResponse(w, r)
+			return
+		}
+
+		allowed, err := app.checkRolePrecedence(r.Context(), user, role)
+		if err != nil {
+			app.internalServerErrorResponse(w, r, err)
+			return
+		}
+
+		if !(allowed || post.UserID == user.ID) {
+			app.notPermittedResponse(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) checkRolePrecedence(ctx context.Context, user *repository.User, roleName string) (bool, error) {
+	role, err := app.repository.Roles.GetByName(ctx, roleName)
+	if err != nil {
+		return false, err
+	}
+
+	return user.Role.Level >= role.Level, nil
 }

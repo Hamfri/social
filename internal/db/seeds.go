@@ -149,6 +149,9 @@ func generateUsers(num int) []*repository.User {
 		users[i] = &repository.User{
 			Username: username,
 			Email:    username + "@hadaa.com",
+			Role: repository.Role{
+				Name: "user",
+			},
 		}
 
 		err := users[i].Password.Set("qwerty1234")

@@ -19,6 +19,7 @@ type Repository struct {
 	Comments
 	UserFollows
 	UserTokens
+	Roles
 }
 
 func New(db *sql.DB) Repository {
@@ -26,7 +27,8 @@ func New(db *sql.DB) Repository {
 	// can easily lead to spaghetti code
 	// use services instead
 	tokenRepo := &UserTokenRepository{db}
-	userRepo := &UserRepository{db, tokenRepo}
+	roleRepo := &RoleRepository{db}
+	userRepo := &UserRepository{db, tokenRepo, roleRepo}
 
 	return Repository{
 		Posts:       &PostRepository{db},
@@ -34,6 +36,7 @@ func New(db *sql.DB) Repository {
 		Comments:    &CommentRepository{db},
 		UserFollows: &UserFollowRepository{db},
 		UserTokens:  tokenRepo,
+		Roles:       roleRepo,
 	}
 }
 

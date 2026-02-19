@@ -48,6 +48,9 @@ func (app *application) registerAccountHandler(w http.ResponseWriter, r *http.Re
 	user := repository.User{
 		Username: payload.Username,
 		Email:    payload.Email,
+		Role: repository.Role{
+			Name: "user",
+		},
 	}
 
 	err = user.Password.Set(payload.Password)
