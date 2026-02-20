@@ -33,10 +33,10 @@ type User struct {
 	Email     string    `json:"email"`
 	Password  password  `json:"-"`
 	Activated bool      `json:"activated"`
-	RoleID    int64     `json:"role_id"`
+	RoleID    int64     `json:"-"`
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
-	Role      Role
+	Role      Role      `json:"role"`
 }
 
 type UserRepository struct {

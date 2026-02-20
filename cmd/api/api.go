@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"social/docs"
 	"social/internal/auth"
+	"social/internal/cache"
 	"social/internal/mailer"
 	"social/internal/repository"
 	"sync"
@@ -49,6 +50,12 @@ type authConfig struct {
 	token tokenConfig
 }
 
+type redisConfig struct {
+	addr    string
+	pw      string
+	db      int
+	enabled bool
+}
 type config struct {
 	port   string
 	env    string
@@ -56,10 +63,12 @@ type config struct {
 	apiURL string
 	smtp   smtp
 	auth   authConfig
+	redis  redisConfig
 }
 type application struct {
 	config        config
 	repository    repository.Repository
+	redisCache    cache.Storage
 	logger        *zap.SugaredLogger
 	mailer        *mailer.SMTPMailer
 	wg            *sync.WaitGroup

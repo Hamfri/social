@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"social/internal/auth"
+	"social/internal/cache"
 	"social/internal/db"
 	"social/internal/env"
 	"social/internal/mailer"
@@ -10,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -60,6 +62,12 @@ func main() {
 				exp:    time.Duration(env.GetInt("JWT_EXP", 24)),
 			},
 		},
+		redis: redisConfig{
+			addr:    env.GetString("REDIS_ADDR", ""),
+			pw:      env.GetString("REDIS_PASSWORD", ""),
+			db:      env.GetInt("REDIS_DB", 1),
+			enabled: env.GetBool("REDIS_ENABLED", false),
+		},
 	}
 
 	logger := zap.Must(zap.NewProduction()).Sugar()
@@ -75,7 +83,13 @@ func main() {
 
 	logger.Info("database connection pool established")
 
-	repository := repository.New(db)
+	// redis
+	var rdb *redis.Client
+	if cfg.redis.enabled {
+		rdb = cache.NewRedisClient(cfg.redis.addr, cfg.redis.pw, cfg.redis.db)
+		logger.Info("redis connection established")
+	}
+
 	mailer, err := mailer.NewMailtrap(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender)
 	if err != nil {
 		logger.Error(err.Error())
@@ -86,7 +100,8 @@ func main() {
 
 	app := &application{
 		config:        cfg,
-		repository:    repository,
+		repository:    repository.New(db),
+		redisCache:    cache.NewRedisStorage(rdb),
 		logger:        logger,
 		mailer:        mailer,
 		wg:            &sync.WaitGroup{},

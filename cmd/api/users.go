@@ -127,7 +127,7 @@ func (app *application) usersContextMiddleware(next http.Handler) http.Handler {
 
 		ctx := r.Context()
 
-		user, err := app.repository.Users.GetByID(ctx, userId)
+		user, err := app.getUser(ctx, userId)
 		if err != nil {
 			switch {
 			case errors.Is(err, repository.ErrRecordNotFound):

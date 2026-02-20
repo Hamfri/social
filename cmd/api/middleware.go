@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -86,7 +87,7 @@ func (app *application) TokenAuthMiddleware(next http.Handler) http.Handler {
 
 		ctx := r.Context()
 
-		user, err := app.repository.Users.GetByID(ctx, userId)
+		user, err := app.getUser(ctx, userId)
 		if err != nil {
 			app.unauthorizedResponse(w, r, err)
 			return
@@ -103,11 +104,6 @@ func (app *application) CheckPostOwnership(role string, next http.HandlerFunc) h
 		user := app.getAuthUserContext(r)
 
 		post := getPostFromCtx(r)
-
-		if post.UserID != user.ID {
-			app.notPermittedResponse(w, r)
-			return
-		}
 
 		allowed, err := app.checkRolePrecedence(r.Context(), user, role)
 		if err != nil {
@@ -131,4 +127,29 @@ func (app *application) checkRolePrecedence(ctx context.Context, user *repositor
 	}
 
 	return user.Role.Level >= role.Level, nil
+}
+
+func (app *application) getUser(ctx context.Context, userId int64) (*repository.User, error) {
+	if app.config.redis.enabled {
+		user, err := app.redisCache.Users.Get(ctx, userId)
+		if err != nil && err != redis.Nil { // ignore empty cache errors
+			return nil, err
+		}
+
+		if user != nil {
+			return user, nil
+		}
+
+	}
+
+	user, err := app.repository.Users.GetByID(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = app.redisCache.Users.Set(ctx, user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
