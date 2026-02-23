@@ -12,8 +12,8 @@ func MockNewJWTAuthenticator(secret, aud, iss string) *JWTAuthenticator {
 // impl of JWTAuthenticator
 type MockAuthenticator struct {
 	secret string
-	aud    string
-	iss    string
+	// aud    string
+	// iss    string
 }
 
 func (m *MockAuthenticator) GenerateToken(claims jwt.Claims) (*string, error) {

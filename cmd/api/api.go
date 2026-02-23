@@ -153,7 +153,7 @@ func (app *application) mount() http.Handler {
 			r.Post("/register", app.registerAccountHandler)
 			r.Put("/activate", app.activateAccountHandler)
 			r.Post("/login", app.loginAccountHandler)
-			r.Delete("/logout", app.loginAccountHandler)
+			r.Delete("/logout", app.logoutAccountHandler)
 		})
 	})
 

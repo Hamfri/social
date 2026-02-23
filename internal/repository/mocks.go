@@ -12,7 +12,7 @@ func MockNewRepository() Repository {
 }
 
 type MockUserStore struct {
-	users []User // append to mock redis
+	// users []User // append to mock redis
 }
 
 func (m *MockUserStore) GetByID(ctx context.Context, ID int64) (*User, error) {

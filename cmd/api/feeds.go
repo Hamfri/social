@@ -29,6 +29,9 @@ func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 
 	p, err := pagination.ParsePaginationParams(r)
+	if err != nil {
+		app.badRequestErrorResponse(w, r, err)
+	}
 
 	if err := Validate.Struct(p); err != nil {
 		app.badRequestErrorResponse(w, r, err)
@@ -36,6 +39,10 @@ func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	f, err := pagination.ParseFilterParams(r)
+	if err != nil {
+		app.badRequestErrorResponse(w, r, err)
+	}
+
 	f.SortSafeList = []string{"id", "created_at", "-id", "-created_at"}
 	if err := Validate.Struct(f); err != nil {
 		app.badRequestErrorResponse(w, r, err)
