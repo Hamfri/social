@@ -1,13 +1,16 @@
 name: bump-version
 on:
-  workflow_run:
-    workflows: ["release"]
-    types:
-      - completed
+  pull_request:
+    types: [closed]
+    branches:
+      - main
 permissions:
   contents: write
 jobs:
   bump-version:
+    if: >
+        github.event.pull_request.merged == true &&
+        github.event.pull_request.head.ref == 'release-please--branches--main'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
