@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/Hamfri/social/compare/v1.0.0...v1.0.1) (2026-02-23)
+
+
+### Bug Fixes
+
+* bug in version bump script ([c63c54f](https://github.com/Hamfri/social/commit/c63c54f845b66b21e156c8cc53be5c080838e96b))
+
 ## 1.0.0 (2026-02-23)
 
 
