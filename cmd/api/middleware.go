@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"social/internal/repository"
 	"strconv"
@@ -22,6 +23,9 @@ var (
 // Don't use in any production system
 func (app *application) BasicAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("username: ", app.config.auth.basic.username)
+		fmt.Println("password: ", app.config.auth.basic.password)
+
 		authorizationHeader := r.Header.Get("Authorization")
 
 		if authorizationHeader == "" {
@@ -114,6 +118,19 @@ func (app *application) CheckPostOwnership(role string, next http.HandlerFunc) h
 		if !(allowed || post.UserID == user.ID) {
 			app.notPermittedResponse(w, r)
 			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) RateLimiterMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if app.config.ratelimiter.Enabled {
+			if allow, retryAfter := app.rateLimiter.Allow(r.RemoteAddr); !allow {
+				app.rateLimiterExceededResponse(w, r, retryAfter.String())
+				return
+			}
 		}
 
 		next.ServeHTTP(w, r)

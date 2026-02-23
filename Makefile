@@ -42,3 +42,16 @@ seed/database:
 .PHONY: gen/docs
 gen/docs:
 	@swag init -g ./api/main.go -d cmd,internal
+
+.PHONY: run/tests
+run/tests:
+	go test ./... -v
+
+# Build app
+.PHONY: build/api
+build/api:
+	go build -o=./bin/api ./cmd/api
+
+.PHONY: build/run-api
+build/run-api:
+	./bin/api 

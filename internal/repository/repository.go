@@ -14,12 +14,12 @@ var (
 )
 
 type Repository struct {
-	Posts
-	Users
-	Comments
-	UserFollows
-	UserTokens
-	Roles
+	Posts       Posts
+	Users       Users
+	Comments    Comments
+	UserFollows UserFollows
+	UserTokens  UserTokens
+	Roles       Roles
 }
 
 func New(db *sql.DB) Repository {

@@ -119,7 +119,7 @@ func (app *application) activateAccountHandler(w http.ResponseWriter, r *http.Re
 
 	ctx := r.Context()
 
-	user, err := app.repository.Activate(ctx, repository.ScopeActivation, payload.Token)
+	user, err := app.repository.Users.Activate(ctx, repository.ScopeActivation, payload.Token)
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrRecordNotFound):

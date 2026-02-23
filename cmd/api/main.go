@@ -1,12 +1,15 @@
 package main
 
 import (
+	"expvar"
 	"os"
+	"runtime"
 	"social/internal/auth"
 	"social/internal/cache"
 	"social/internal/db"
 	"social/internal/env"
 	"social/internal/mailer"
+	"social/internal/ratelimiter"
 	"social/internal/repository"
 	"sync"
 	"time"
@@ -68,6 +71,11 @@ func main() {
 			db:      env.GetInt("REDIS_DB", 1),
 			enabled: env.GetBool("REDIS_ENABLED", false),
 		},
+		ratelimiter: ratelimiter.Config{
+			RequestsPerTimeFrame: env.GetInt("RATE_LIMITER_REQUESTS_COUNT", 20),
+			TimeFrame:            time.Second * 5,
+			Enabled:              env.GetBool("RATE_LIMITER_ENABLED", false),
+		},
 	}
 
 	logger := zap.Must(zap.NewProduction()).Sugar()
@@ -98,6 +106,11 @@ func main() {
 
 	JWTauthenticator := auth.NewJWTAuthenticator(cfg.auth.token.secret, cfg.auth.token.aud, cfg.auth.token.iss)
 
+	ratelimiter := ratelimiter.NewFixedWindowLimiter(
+		cfg.ratelimiter.RequestsPerTimeFrame,
+		cfg.ratelimiter.TimeFrame,
+	)
+
 	app := &application{
 		config:        cfg,
 		repository:    repository.New(db),
@@ -106,9 +119,21 @@ func main() {
 		mailer:        mailer,
 		wg:            &sync.WaitGroup{},
 		authenticator: JWTauthenticator,
+		rateLimiter:   ratelimiter,
 	}
+
+	expvar.NewString("version").Set(version)
+	expvar.Publish("database", expvar.Func(func() any {
+		return db.Stats()
+	}))
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
 
 	mux := app.mount()
 
-	logger.Fatal(app.run(mux))
+	if err = app.run(mux); err != nil {
+		logger.Fatal(err.Error())
+		os.Exit(1)
+	}
 }

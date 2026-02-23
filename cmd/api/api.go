@@ -1,18 +1,27 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"expvar"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"social/docs"
 	"social/internal/auth"
 	"social/internal/cache"
+	"social/internal/env"
 	"social/internal/mailer"
+	"social/internal/ratelimiter"
 	"social/internal/repository"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"go.uber.org/zap"
 )
@@ -56,14 +65,16 @@ type redisConfig struct {
 	db      int
 	enabled bool
 }
+
 type config struct {
-	port   string
-	env    string
-	db     dbConfig
-	apiURL string
-	smtp   smtp
-	auth   authConfig
-	redis  redisConfig
+	port        string
+	env         string
+	db          dbConfig
+	apiURL      string
+	smtp        smtp
+	auth        authConfig
+	redis       redisConfig
+	ratelimiter ratelimiter.Config
 }
 type application struct {
 	config        config
@@ -73,15 +84,29 @@ type application struct {
 	mailer        *mailer.SMTPMailer
 	wg            *sync.WaitGroup
 	authenticator *auth.JWTAuthenticator
+	rateLimiter   *ratelimiter.FixedWindowRateLimiter
 }
 
 func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
 
+	// Basic CORS
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{env.GetString("CORS_ALLOWED_ORIGIN", "localhost:4200")}, // avoid using arterisk
+		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
+
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	r.Use(app.RateLimiterMiddleware)
 
 	r.Use(middleware.Timeout(60 * time.Second))
 
@@ -95,6 +120,7 @@ func (app *application) mount() http.Handler {
 			docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.port)
 
 			r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
+			r.Get("/debug/vars", expvar.Handler().ServeHTTP)
 		})
 
 		r.Route("/posts", func(r chi.Router) {
@@ -150,7 +176,35 @@ func (app *application) run(mux http.Handler) error {
 		IdleTimeout:  time.Minute,
 	}
 
+	shutdownError := make(chan error)
+
+	go func() {
+		quit := make(chan os.Signal, 1)
+
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+		s := <-quit
+
+		app.logger.Infow("shutdown server", "signal", s.String())
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		shutdownError <- srv.Shutdown(ctx)
+	}()
+
 	app.logger.Infow("server started on", "port", app.config.port, "env", app.config.env)
 
-	return srv.ListenAndServe()
+	err := srv.ListenAndServe()
+	if !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	if err = <-shutdownError; err != nil {
+		return err
+	}
+
+	app.logger.Infow("server stopped", "port", app.config.port, "env", app.config.env)
+
+	return nil
 }
