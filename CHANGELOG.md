@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/Hamfri/social/compare/v1.4.0...v1.4.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* build docs before building the app ([e07813b](https://github.com/Hamfri/social/commit/e07813b7cc4c21a00623130267d78a8f1b0e3252))
+
 ## [1.4.0](https://github.com/Hamfri/social/compare/v1.3.0...v1.4.0) (2026-02-24)
 
 
