@@ -23,6 +23,9 @@ RUN go build -a -installsuffix cgo -o api cmd/api/*.go
 # Final stage
 # ---------------------------
 FROM alpine:latest
+
+RUN apk add --no-cache ca-certificates
+
 WORKDIR /app
 # COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs
 
