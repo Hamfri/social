@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/Hamfri/social/compare/v1.1.2...v1.2.0) (2026-02-24)
+
+
+### Features
+
+* Add Dockerfile ([6f5a4ea](https://github.com/Hamfri/social/commit/6f5a4ea26c419ee5493a5f72e0b712b88a4474c3))
+
 ## [1.1.2](https://github.com/Hamfri/social/compare/v1.1.1...v1.1.2) (2026-02-24)
 
 
