@@ -132,6 +132,7 @@ func main() {
 
 	mux := app.mount()
 
+	// trigger release
 	if err = app.run(mux); err != nil {
 		logger.Fatal(err.Error())
 		os.Exit(1)
