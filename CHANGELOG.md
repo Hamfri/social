@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2](https://github.com/Hamfri/social/compare/v1.4.1...v1.4.2) (2026-02-24)
+
+
+### Bug Fixes
+
+* remove user ([0951a15](https://github.com/Hamfri/social/commit/0951a15be3f6f77998bb2b5b32e2c0f323b11e7d))
+
 ## [1.4.1](https://github.com/Hamfri/social/compare/v1.4.0...v1.4.1) (2026-02-24)
 
 
