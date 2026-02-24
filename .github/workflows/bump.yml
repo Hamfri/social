@@ -10,7 +10,7 @@ jobs:
   bump-version:
     if: >
         github.event.pull_request.merged == true &&
-        github.event.pull_request.head.ref == 'release-please--branches--main'
+        startsWith(github.event.pull_request.head.ref, 'release-please')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
