@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.4](https://github.com/Hamfri/social/compare/v1.4.3...v1.4.4) (2026-02-24)
+
+
+### Bug Fixes
+
+* Add SSL certs. ([a1eb98e](https://github.com/Hamfri/social/commit/a1eb98e78584be9d29639d99da39174bc244a72a))
+
 ## [1.4.3](https://github.com/Hamfri/social/compare/v1.4.2...v1.4.3) (2026-02-24)
 
 
