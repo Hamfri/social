@@ -17,7 +17,8 @@ jobs:
       - name: Extract current version from changelog
         id: get_version
         run: |
-          VERSION=$(grep -m1 -oE '^## [0-9]+\.[0-9]+\.[0-9]+' CHANGELOG.md | awk '{print $2}')
+          TITLE="${{ github.event.pull_request.title }}"
+          VERSION=$(echo "$TITLE" | sed -nE 's/^chore\(.*\): release ([0-9]+\.[0-9]+\.[0-9]+)$/\1/p')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
       - name: Bump version in api/main.go
         run: |
