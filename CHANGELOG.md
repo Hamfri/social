@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/Hamfri/social/compare/v1.3.0...v1.4.0) (2026-02-24)
+
+
+### Features
+
+* run migrations before starting the application ([db335e6](https://github.com/Hamfri/social/commit/db335e6b9fb0058163a42af82b431275becd4649))
+
 ## [1.3.0](https://github.com/Hamfri/social/compare/v1.2.0...v1.3.0) (2026-02-24)
 
 
