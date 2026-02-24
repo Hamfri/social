@@ -24,6 +24,5 @@ COPY --from=builder /app/api .
 COPY --from=builder /app/migrate .
 COPY --from=builder /app/migrations /app/migrations
 ENV APP_PORT=:9000
-ENV USER=api
 EXPOSE 9000
 CMD ["sh", "-c", "./migrate -path ./migrations -database \"$DB_DSN\" up && ./api"]
