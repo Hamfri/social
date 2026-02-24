@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/Hamfri/social/compare/v1.2.0...v1.3.0) (2026-02-24)
+
+
+### Features
+
+* Expose port ([b593010](https://github.com/Hamfri/social/commit/b593010e5c59f84c435f9781de47a80b1d943abe))
+
 ## [1.2.0](https://github.com/Hamfri/social/compare/v1.1.2...v1.2.0) (2026-02-24)
 
 
