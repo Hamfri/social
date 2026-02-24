@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/Hamfri/social/compare/v1.0.1...v1.1.0) (2026-02-24)
+
+
+### Features
+
+* trigger release ([e01ac50](https://github.com/Hamfri/social/commit/e01ac50003cac6ca96ebd73167e9164148d602be))
+
 ## [1.0.1](https://github.com/Hamfri/social/compare/v1.0.0...v1.0.1) (2026-02-23)
 
 
