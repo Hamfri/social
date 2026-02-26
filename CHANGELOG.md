@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.5](https://github.com/Hamfri/social/compare/v1.4.4...v1.4.5) (2026-02-26)
+
+
+### Bug Fixes
+
+* Docker image issues, allow ipv6 connections from container and fix bug in migration. ([c7e758f](https://github.com/Hamfri/social/commit/c7e758f1626199ed2d6b84df03f9e94a6103a14e))
+
 ## [1.4.4](https://github.com/Hamfri/social/compare/v1.4.3...v1.4.4) (2026-02-24)
 
 
