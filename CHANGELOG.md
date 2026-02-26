@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.6](https://github.com/Hamfri/social/compare/v1.4.5...v1.4.6) (2026-02-26)
+
+
+### Bug Fixes
+
+* update models and swagger docs. ([fba770d](https://github.com/Hamfri/social/commit/fba770d8416865cacb9706d9c2beed905cab9a94))
+
 ## [1.4.5](https://github.com/Hamfri/social/compare/v1.4.4...v1.4.5) (2026-02-26)
 
 
