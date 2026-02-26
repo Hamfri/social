@@ -1,37 +1,48 @@
-# ---------------------------
-# Build stage
-# ---------------------------
+#--------------------------------------------
+# Stage 1: Install Tools
+#--------------------------------------------
+FROM golang:1.25-alpine AS tools
+
+# install swag for generating api docs
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
+#--------------------------------------------
+# Stage 2: Builder
+#--------------------------------------------
 FROM golang:1.25 AS builder
 WORKDIR /app
 
-# Install swag CLI
-RUN go install github.com/swaggo/swag/cmd/swag@latest
-RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.19.1/migrate.linux-amd64.tar.gz | tar xvz
+COPY --from=tools /go/bin/swag /go/bin/swag
+
+# Cache Go modules (runs only if go.sum and go.mod changes)
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source and generate swagger docs
 COPY . .
-ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+RUN /go/bin/swag init -g ./api/main.go -d cmd,internal
 
-# so that swag is available
-ENV PATH=$PATH:/go/bin
+# Build the binary
+# -s -w reduces binary size for faster container cold starts
+# -s strip symbol table. In case of a crash no stack-trace
+# -w strip DWARF. Removes debugging information, gdb | delve debbugers can't be used.
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -ldflags="-s -w" -o api cmd/api/*.go
 
-# Generate swagger docs
-RUN swag init -g ./api/main.go -d cmd,internal
-
-# -a ignore cache and rebuild everything
-RUN go build -a -installsuffix cgo -o api cmd/api/*.go
-
-# ---------------------------
-# Final stage
-# ---------------------------
+#--------------------------------------------
+# Stage 3: Final Runtime (Production)
+#--------------------------------------------
 FROM alpine:latest
+RUN apk add --no-cache ca-certificates tzdata
 
-RUN apk add --no-cache ca-certificates
+# Create non-root user for security
+RUN adduser -D social
+USER social
 
 WORKDIR /app
-# COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs
 
-# copy binaries
 COPY --from=builder /app/api .
-COPY --from=builder /app/migrate .
-COPY --from=builder /app/migrations /app/migrations
+
 EXPOSE 8080
-CMD ["sh", "-c", "./migrate -path ./migrations -database \"$DB_DSN\" up && ./api"]
+
+CMD ["./api"]

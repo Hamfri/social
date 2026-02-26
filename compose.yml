@@ -8,6 +8,8 @@ services:
       - POSTGRES_DB=social
     ports:
       - '5432:5432'
+    networks:
+      - social-net
     volumes:
       # ./postgres-data would live on the project
       # postgres-data lives in docker storage-area 
@@ -29,6 +31,8 @@ services:
       timeout: 1m30s
       retries: 3
       start_period: 30s
+    networks:
+      - social-net
     volumes:
       - social-redis-data:/data
   # redis-commander:
@@ -52,8 +56,17 @@ services:
       - "5540:5540"
     depends_on:
       - redis
+    networks:
+      - social-net
     volumes:
       - social-redisinsight-data:/data
+networks:
+  social-net:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+        - subnet: 2001:db8:1::/64
 volumes:
     social-pg-data:
     social-redis-data:
