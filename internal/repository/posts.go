@@ -29,7 +29,7 @@ type Post struct {
 	Version   int        `json:"version"`
 	UserID    int64      `json:"user_id"`
 	Comments  []*Comment `json:"comments"` // should move to a dto or a domain
-	User      User       `json:"user"`     // should move to a dto or a domain
+	User      User       `json:"-"`        // should move to a dto or a domain
 }
 
 type PostWithMetadata struct {

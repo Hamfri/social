@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"net/http"
 	"social/internal/repository"
 	"strconv"
@@ -23,8 +22,6 @@ var (
 // Don't use in any production system
 func (app *application) BasicAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("username: ", app.config.auth.basic.username)
-		fmt.Println("password: ", app.config.auth.basic.password)
 
 		authorizationHeader := r.Header.Get("Authorization")
 
@@ -164,8 +161,10 @@ func (app *application) getUser(ctx context.Context, userId int64) (*repository.
 		return nil, err
 	}
 
-	if err = app.redisCache.Users.Set(ctx, user); err != nil {
-		return nil, err
+	if app.config.redis.enabled {
+		if err = app.redisCache.Users.Set(ctx, user); err != nil {
+			return nil, err
+		}
 	}
 
 	return user, nil

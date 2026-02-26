@@ -11,10 +11,10 @@ type postCtx string
 
 const postCtxKey = postCtx("posts")
 
-type CreatePostPayload struct {
-	Title   string   `json:"title" validate:"required,max=100"`
-	Content string   `json:"content"  validate:"required,max=1000"`
-	Tags    []string `json:"tags"`
+type createPostPayload struct {
+	Title   *string   `json:"title" validate:"required,max=100"`
+	Content *string   `json:"content"  validate:"required,max=1000"`
+	Tags    *[]string `json:"tags"`
 }
 
 // @Summary		Create a post
@@ -22,7 +22,8 @@ type CreatePostPayload struct {
 // @Tags			Posts
 // @Accept			json
 // @Produce		json
-// @Success		200	{object}	repository.Post
+// @Param payload body createPostPayload true "create post payload"
+// @Success		201	{object}	repository.Post
 // @Failure		400	{object}	ErrorResponse
 // @Failure		500	{object}	ErrorResponse
 // @Security ApiKeyAuth
@@ -31,7 +32,7 @@ type CreatePostPayload struct {
 // @name Authorization
 // @Router			/posts [post]
 func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request) {
-	var payload CreatePostPayload
+	var payload createPostPayload
 	if err := readJSON(w, r, &payload); err != nil {
 		app.badRequestErrorResponse(w, r, err)
 		return
@@ -47,9 +48,9 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	post := &repository.Post{
-		Title:   payload.Title,
-		Content: payload.Content,
-		Tags:    payload.Tags,
+		Title:   *payload.Title,
+		Content: *payload.Content,
+		Tags:    *payload.Tags,
 		UserID:  user.ID,
 	}
 
@@ -70,8 +71,7 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 // @Accept			json
 // @Produce		json
 // @Param			id	path		int	true	"Post ID"
-// @Success		200	{object}	repository.Posts
-// @Failure		400	{object}	ErrorResponse
+// @Success		200	{object}	repository.Post
 // @Failure		404	{object}	ErrorResponse
 // @Failure		500	{object}	ErrorResponse
 // @Security ApiKeyAuth
@@ -97,12 +97,19 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type patchPostPayload struct {
+	Title   *string   `json:"title" validate:"omitempty,max=100"`
+	Content *string   `json:"content" validate:"omitempty,max=1000"`
+	Tags    *[]string `json:"tags"`
+}
+
 // @Summary		Update Post
 // @Description	Update post
 // @Tags			Posts
 // @Accept			json
 // @Produce		json
 // @Param			id	path		int	true	"Post ID"
+// @Param payload body patchPostPayload true "create post payload"
 // @Success		200	{object}	repository.Posts
 // @Failure		400	{object}	ErrorResponse
 // @Failure		404	{object}	ErrorResponse
@@ -115,12 +122,7 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 // @Router			/posts/{id} [patch]
 func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
 	post := getPostFromCtx(r)
-
-	var payload struct {
-		Title   *string   `json:"title" validate:"omitempty,max=100"`
-		Content *string   `json:"content" validate:"omitempty,max=1000"`
-		Tags    *[]string `json:"tags"`
-	}
+	var payload patchPostPayload
 
 	err := readJSON(w, r, &payload)
 	if err != nil {
@@ -168,7 +170,6 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 // @Produce		json
 // @Param			id	path		int	true	"Post ID"
 // @Success		204
-// @Failure		400	{object}	ErrorResponse
 // @Failure		404	{object}	ErrorResponse
 // @Failure		500	{object}	ErrorResponse
 // @Security ApiKeyAuth
@@ -183,8 +184,7 @@ func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = app.repository.Posts.DeletePost(r.Context(), postId)
-	if err != nil {
+	if err = app.repository.Posts.DeletePost(r.Context(), postId); err != nil {
 		switch {
 		case errors.Is(err, repository.ErrRecordNotFound):
 			app.notFoundErrorResponse(w, r, err)

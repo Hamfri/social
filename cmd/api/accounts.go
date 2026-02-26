@@ -147,7 +147,7 @@ func (app *application) activateAccountHandler(w http.ResponseWriter, r *http.Re
 // @Accept json
 // @Produce json
 // @Param payload body loginCredentials true "Login credentials"
-// @Success 200 {object} repository.User
+// @Success 200 string true "token"
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
 // @Router /accounts/login [post]

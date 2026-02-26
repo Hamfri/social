@@ -33,10 +33,10 @@ type User struct {
 	Email     string    `json:"email"`
 	Password  password  `json:"-"`
 	Activated bool      `json:"activated"`
-	RoleID    int64     `json:"-"`
+	RoleID    int64     `json:"role_id"`
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
-	Role      Role      `json:"role"`
+	Role      Role      `json:"-"`
 }
 
 type UserRepository struct {
@@ -53,7 +53,7 @@ func (r *UserRepository) Create(ctx context.Context, tx *sql.Tx, user *User) err
 		INSERT INTO users
 		(username, email, password, role_id)
 		VALUES($1, $2, $3, (SELECT id FROM roles WHERE name=$4))
-		RETURNING id, created_at, updated_at
+		RETURNING id, created_at, updated_at, role_id
 	`
 
 	role := user.Role.Name
@@ -190,7 +190,7 @@ func (r *UserRepository) GetUserByToken(ctx context.Context, tx *sql.Tx, scope, 
 	tokenHash := sha256.Sum256([]byte(plainTextToken))
 
 	query := `
-		SELECT u.id, u.username, u.email, u.password, u.activated
+		SELECT u.id, u.username, u.email, u.password, u.activated, u.role_id
 		FROM users u
 		INNER JOIN user_tokens t ON t.user_id = u.id
 		WHERE t.scope = $1 
@@ -210,6 +210,7 @@ func (r *UserRepository) GetUserByToken(ctx context.Context, tx *sql.Tx, scope, 
 		&user.Email,
 		&user.Password.hash,
 		&user.Activated,
+		&user.RoleID,
 	)
 	if err != nil {
 		switch {

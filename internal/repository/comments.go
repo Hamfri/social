@@ -13,7 +13,7 @@ type Comment struct {
 	PostId    int64     `json:"post_id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"-"`
-	User      User      `json:"user"`
+	User      User      `json:"-"`
 }
 
 type Comments interface {
