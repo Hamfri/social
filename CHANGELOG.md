@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/Hamfri/social/compare/v1.5.0...v1.5.1) (2026-02-27)
+
+
+### Bug Fixes
+
+* gcloud auth issue ([2d641d6](https://github.com/Hamfri/social/commit/2d641d6a984e9c2eda0a06e5065918ab85a6c8ee))
+
 ## [1.5.0](https://github.com/Hamfri/social/compare/v1.4.6...v1.5.0) (2026-02-27)
 
 
