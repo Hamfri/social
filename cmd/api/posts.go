@@ -110,7 +110,7 @@ type patchPostPayload struct {
 // @Produce		json
 // @Param			id	path		int	true	"Post ID"
 // @Param payload body patchPostPayload true "create post payload"
-// @Success		200	{object}	repository.Posts
+// @Success		200	{object}	repository.Post
 // @Failure		400	{object}	ErrorResponse
 // @Failure		404	{object}	ErrorResponse
 // @Failure		409	{object}    ErrorResponse

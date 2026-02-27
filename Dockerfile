@@ -22,12 +22,14 @@ RUN go mod download
 COPY . .
 RUN /go/bin/swag init -g ./api/main.go -d cmd,internal
 
+ARG VERSION=dev
+
 # Build the binary
 # -s -w reduces binary size for faster container cold starts
 # -s strip symbol table. In case of a crash no stack-trace
 # -w strip DWARF. Removes debugging information, gdb | delve debbugers can't be used.
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-s -w" -o api cmd/api/*.go
+    go build -ldflags="-s -w -X 'main.version=${VERSION}'" -o api cmd/api/*.go
 
 #--------------------------------------------
 # Stage 3: Final Runtime (Production)
