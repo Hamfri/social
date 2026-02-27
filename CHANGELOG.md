@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/Hamfri/social/compare/v1.4.6...v1.5.0) (2026-02-27)
+
+
+### Features
+
+* Trigger deployments based on tags ([676ff50](https://github.com/Hamfri/social/commit/676ff504d3e5f4001430ec199078cdce5ceb8ea1))
+
 ## [1.4.6](https://github.com/Hamfri/social/compare/v1.4.5...v1.4.6) (2026-02-26)
 
 
