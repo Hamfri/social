@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.2](https://github.com/Hamfri/social/compare/v1.5.1...v1.5.2) (2026-02-27)
+
+
+### Bug Fixes
+
+* Error password required ([10f37c7](https://github.com/Hamfri/social/commit/10f37c7b5ec694c175ff4b9e5a3cb75e21718468))
+
 ## [1.5.1](https://github.com/Hamfri/social/compare/v1.5.0...v1.5.1) (2026-02-27)
 
 
