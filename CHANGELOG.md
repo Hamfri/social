@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.3](https://github.com/Hamfri/social/compare/v1.5.2...v1.5.3) (2026-03-01)
+
+
+### Bug Fixes
+
+* consume region from secrets ([caf8907](https://github.com/Hamfri/social/commit/caf890780519276da02d84ef567bfa0534ab5a44))
+
 ## [1.5.2](https://github.com/Hamfri/social/compare/v1.5.1...v1.5.2) (2026-02-27)
 
 
